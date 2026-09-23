@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Verify a certificate · Last Benchers Association</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=Public+Sans:wght@400;600&display=swap" rel="stylesheet">
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root{--ink:#12203A;--bg:#EDF0F5;--chalk:#F2B705;--ok:#0F8A5F;--bad:#B3261E;--mute:#5B6780;--line:#D5DBE6;
+--head:'Bricolage Grotesque','Segoe UI',system-ui,sans-serif;--body:'Public Sans','Segoe UI',system-ui,sans-serif}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.55 var(--body)}
+header{background:var(--ink);color:#fff;padding:14px 20px}
+header b{font:800 18px var(--head);color:var(--chalk);letter-spacing:.2px}
+main{max-width:720px;margin:0 auto;padding:36px 20px 64px}
+h1{font:800 clamp(28px,6vw,42px)/1.1 var(--head);margin:0 0 8px}
+.sub{color:var(--mute);margin:0 0 24px}
+form{display:flex;gap:8px;flex-wrap:wrap}
+input{flex:1 1 220px;min-width:0;padding:13px 14px;border:2px solid var(--line);border-radius:6px;font:600 16px var(--body);
+background:#fff;color:var(--ink);text-transform:uppercase}
+input::placeholder{text-transform:none;font-weight:400;color:#8A94A8}
+button{padding:13px 22px;border:0;border-radius:6px;background:var(--ink);color:#fff;font:600 16px var(--body);cursor:pointer}
+button.alt{background:var(--chalk);color:var(--ink)}
+button:disabled{opacity:.55;cursor:wait}
+:focus-visible{outline:3px solid var(--chalk);outline-offset:2px}
+#status{margin:20px 0 0;min-height:1.5em;font-weight:600}
+#status.warn{color:var(--bad)}
+.cert{position:relative;margin-top:24px;background:#fff;border:1px solid var(--line);border-left:10px solid var(--ok);
+border-radius:6px;padding:32px 28px 28px}
+.cert.revoked{border-left-color:var(--bad)}
+.seal{display:inline-block;transform:rotate(-3deg);border:3px solid var(--ok);color:var(--ok);border-radius:6px;padding:6px 14px;
+font:800 14px/1.25 var(--head);margin-bottom:18px}
+.seal small{display:block;font:600 12px var(--body)}
+.revoked .seal{border-color:var(--bad);color:var(--bad)}
+.name{font:800 clamp(26px,5vw,36px)/1.15 var(--head);margin:0}
+.inst{margin:2px 0 14px;font-size:18px;color:var(--mute)}
+.did{font-size:18px;margin:0 0 18px}
+dl{display:grid;grid-template-columns:110px 1fr;gap:6px 14px;margin:0 0 18px}
+dt{color:var(--mute)}dd{margin:0;font-weight:600;overflow-wrap:anywhere}
+.desc{margin:0 0 16px;white-space:pre-line;overflow-wrap:anywhere}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 20px;padding:0;list-style:none}
+.chips li{background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:2px 10px;font-size:14px;font-weight:600}
+.foot{border-top:1px dashed var(--line);padding-top:14px;font-size:14px;color:var(--mute);overflow-wrap:anywhere}
+.foot b{color:var(--ink);font-family:ui-monospace,Consolas,monospace}
+#actions{margin-top:16px}
+html{-webkit-text-size-adjust:100%}
+input,button{min-height:46px}
+@media(min-width:900px){main{max-width:800px;padding-top:56px}.cert{padding:40px 40px 34px}dl{grid-template-columns:130px 1fr}}
+@media(max-width:600px){main{padding:24px 16px 48px}.cert{padding:24px 18px;border-left-width:8px}#f button,#pdf{width:100%}}
+@media(max-width:480px){dl{grid-template-columns:1fr}dt{margin-top:6px}}
+@media print{body *{visibility:hidden}#cert,#cert *{visibility:visible}#cert{position:absolute;left:0;top:0;width:100%;margin:0}}
+</style>
+</head>
+<body>
+<header><b>Last Benchers Association</b></header>
+<main>
+  <h1>Verify a certificate</h1>
+  <p class="sub">Scan the QR code on a certificate, or enter its ID below.</p>
+  <form id="f" autocomplete="off">
+    <input id="q" aria-label="Certificate ID" placeholder="e.g. LBA-2026-K7M2QX" maxlength="30">
+    <button id="go" type="submit">Verify</button>
+  </form>
+  <p id="status" role="status" aria-live="polite"></p>
+  <article id="cert" class="cert" hidden></article>
+  <div id="actions" hidden><button id="pdf" class="alt" type="button">Download PDF</button></div>
+</main>
+<script>
+const API_URL = 'https://script.google.com/macros/s/AKfycby-fUWL8BvDO-2NcqUHQAcRbqrISohW27yuSJu0k7uWb6B3LhnrDqB4G86F7FHgygRN/exec';   // Apps Script /exec URL
+
+const $ = id => document.getElementById(id);
+const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const VERB = { Internship:'completed an internship', Volunteer:'volunteered', Member:'served as a member', Others:'contributed' };
+let seq = 0, currentId = '';
+
+const fmt = s => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || ''); return m ? `${+m[3]} ${MON[+m[2]-1]} ${m[1]}` : ''; };
+function el(tag, cls, text){ const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+function say(text, warn){ const s = $('status'); s.textContent = text; s.className = warn ? 'warn' : ''; }
+
+async function lookup(raw, updateUrl){
+  const id = String(raw || '').replace(/\s+/g, '').toUpperCase();
+  const mine = ++seq;
+  $('cert').hidden = true; $('actions').hidden = true;
+  if (!id){ say('Enter a certificate ID to verify.', true); return; }
+  if (!API_URL || API_URL.startsWith('PASTE')){ say('This site is not configured yet: set API_URL in index.html.', true); return; }
+  $('q').value = id; $('go').disabled = true; say('Checking…');
+  const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 25000);
+  try{
+    const res = await fetch(`${API_URL}?action=verify&id=${encodeURIComponent(id)}`, { signal: ctl.signal });
+    const json = await res.json();
+    if (mine !== seq) return;                       // a newer search replaced this one
+    if (!json.success) throw new Error(json.error || 'Verification failed');
+    render(json.data); say('');
+    if (updateUrl) history.replaceState(null, '', '?id=' + encodeURIComponent(id));
+  }catch(err){
+    if (mine !== seq) return;
+    say(err.name === 'AbortError' ? 'The server took too long to respond. Please try again.'
+        : /No certificate/.test(err.message) ? err.message + '. Check the ID and try again.'
+        : err.message === 'Failed to fetch' ? 'Could not reach the server. Check your connection and try again.' : err.message, true);
+  }finally{
+    clearTimeout(timer); if (mine === seq) $('go').disabled = false;
+  }
+}
+
+function render(d){
+  const revoked = d.Status === 'Revoked';
+  currentId = d.ID;
+  const c = $('cert'); c.replaceChildren(); c.className = 'cert' + (revoked ? ' revoked' : '');
+  const seal = el('div', 'seal', revoked ? 'Revoked' : 'Verified');
+  seal.appendChild(el('small', '', revoked ? 'This certificate is no longer valid' : 'by Last Benchers Association'));
+  c.append(seal, el('h2', 'name', d.Name), el('p', 'inst', 'of ' + d.Institution),
+           el('p', 'did', `has ${VERB[d.WorkType] || 'contributed'} in ${d.Domain}.`));
+  const dl = el('dl');
+  const period = fmt(d.StartDate) + ' to ' + (fmt(d.EndDate) || 'Present');
+  [['Work type', d.WorkType], ['Domain', d.Domain], ['Title', d.Title], ['Period', period]].forEach(([k, v]) => {
+    dl.append(el('dt', '', k), el('dd', '', v));
+  });
+  c.append(dl, el('p', 'desc', d.Description));
+  const chips = el('ul', 'chips');
+  String(d.Skills).split(',').map(s => s.trim()).filter(Boolean).forEach(s => chips.appendChild(el('li', '', s)));
+  c.appendChild(chips);
+  const foot = el('div', 'foot'); foot.append('Certificate ID: ', el('b', '', d.ID));
+  c.appendChild(foot);
+  c.hidden = false; $('actions').hidden = false;
+  c.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+async function downloadPdf(){
+  const btn = $('pdf'); btn.disabled = true;
+  try{
+    if (!window.html2canvas || !window.jspdf) throw new Error('PDF libraries not loaded');
+    const canvas = await html2canvas($('cert'), { scale: 2, backgroundColor: '#ffffff', useCORS: true });
+    const pdf = new window.jspdf.jsPDF({ unit: 'mm', format: 'a4' });
+    const W = 210, H = 297, m = 15;
+    let w = W - 2 * m, h = canvas.height * w / canvas.width;
+    if (h > H - 2 * m){ h = H - 2 * m; w = canvas.width * h / canvas.height; }
+    pdf.addImage(canvas.toDataURL('image/png'), 'PNG', (W - w) / 2, m, w, h);
+    pdf.save('LBA-Certificate-' + currentId + '.pdf');
+  }catch(err){
+    window.print();                                 // fallback: browser "Save as PDF"
+  }finally{
+    btn.disabled = false;
+  }
+}
+
+$('f').addEventListener('submit', e => { e.preventDefault(); lookup($('q').value, true); });
+$('pdf').addEventListener('click', downloadPdf);
+const startId = new URLSearchParams(location.search).get('id');
+if (startId) lookup(startId, false);
+</script>
+</body>
+</html>
