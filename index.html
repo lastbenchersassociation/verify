@@ -10,21 +10,26 @@
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
-:root{--ink:#12203A;--bg:#EDF0F5;--chalk:#F2B705;--ok:#0F8A5F;--bad:#B3261E;--mute:#5B6780;--line:#D5DBE6;
+:root{--ink:#2A0944;--bg:#F8F3FA;--chalk:#E0449C;--ok:#6B2FA8;--bad:#C2196E;--mute:#6E5E7D;--line:#E7D9EE;
 --head:'Bricolage Grotesque','Segoe UI',system-ui,sans-serif;--body:'Public Sans','Segoe UI',system-ui,sans-serif}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.55 var(--body)}
-header{background:var(--ink);color:#fff;padding:14px 20px}
-header b{font:800 18px var(--head);color:var(--chalk);letter-spacing:.2px}
+header{background:linear-gradient(135deg,#150E1B,#3B1E5E);color:#fff;padding:14px 20px}
+header b{font:800 18px var(--head);color:#F5A9D0;letter-spacing:.2px}
 main{max-width:720px;margin:0 auto;padding:36px 20px 64px}
+footer{max-width:720px;margin:0 auto;padding:0 20px 40px;display:flex;justify-content:center}
+footer a{display:inline-block;padding:9px 18px;border-radius:6px;border:1.5px solid var(--line);color:var(--mute);
+font:600 13px var(--body);text-decoration:none;background:#fff}
+footer a:hover{color:var(--ink);border-color:var(--ok)}
+@media(min-width:900px){footer{max-width:800px}}
 h1{font:800 clamp(28px,6vw,42px)/1.1 var(--head);margin:0 0 8px}
 .sub{color:var(--mute);margin:0 0 24px}
 form{display:flex;gap:8px;flex-wrap:wrap}
 input{flex:1 1 220px;min-width:0;padding:13px 14px;border:2px solid var(--line);border-radius:6px;font:600 16px var(--body);
 background:#fff;color:var(--ink);text-transform:uppercase}
-input::placeholder{text-transform:none;font-weight:400;color:#8A94A8}
-button{padding:13px 22px;border:0;border-radius:6px;background:var(--ink);color:#fff;font:600 16px var(--body);cursor:pointer}
-button.alt{background:var(--chalk);color:var(--ink)}
+input::placeholder{text-transform:none;font-weight:400;color:#9A8BA8}
+button{padding:13px 22px;border:0;border-radius:6px;background:linear-gradient(135deg,#3B1E5E,var(--chalk));color:#fff;font:600 16px var(--body);cursor:pointer}
+button.alt{background:var(--chalk);color:#fff}
 button:disabled{opacity:.55;cursor:wait}
 :focus-visible{outline:3px solid var(--chalk);outline-offset:2px}
 #status{margin:20px 0 0;min-height:1.5em;font-weight:600}
@@ -43,7 +48,7 @@ dl{display:grid;grid-template-columns:110px 1fr;gap:6px 14px;margin:0 0 18px}
 dt{color:var(--mute)}dd{margin:0;font-weight:600;overflow-wrap:anywhere}
 .desc{margin:0 0 16px;white-space:pre-line;overflow-wrap:anywhere}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 20px;padding:0;list-style:none}
-.chips li{background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:2px 10px;font-size:14px;font-weight:600}
+.chips li{background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:2px 10px;font-size:14px;font-weight:600;color:#3B1E5E}
 .foot{border-top:1px dashed var(--line);padding-top:14px;font-size:14px;color:var(--mute);overflow-wrap:anywhere}
 .foot b{color:var(--ink);font-family:ui-monospace,Consolas,monospace}
 #actions{margin-top:16px}
@@ -68,6 +73,7 @@ input,button{min-height:46px}
   <article id="cert" class="cert" hidden></article>
   <div id="actions" hidden><button id="pdf" class="alt" type="button">Download PDF</button></div>
 </main>
+<footer><a href="admin.html">Admin sign in</a></footer>
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycby-fUWL8BvDO-2NcqUHQAcRbqrISohW27yuSJu0k7uWb6B3LhnrDqB4G86F7FHgygRN/exec';   // Apps Script /exec URL
 
